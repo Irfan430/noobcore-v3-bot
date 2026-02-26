@@ -1,7 +1,5 @@
 import axios from "axios";
 
-/* ========= CONFIG ========= */
-
 const config = {
   name: "gpt",
   version: "1.0",

@@ -53,6 +53,7 @@
   },
   "commandUnload": [
     "gpt5.js",
-    "info.js"
+    "info.js",
+    "bro.js"
   ]
 }
