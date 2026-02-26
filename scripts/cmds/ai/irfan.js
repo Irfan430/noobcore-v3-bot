@@ -5,6 +5,14 @@ const path = require("path");
 
 const nix = "https://raw.githubusercontent.com/aryannix/stuffs/master/raw/apis.json";
 
+/* ================= GENDER CONVERT ================= */
+
+function genConvert(gender) {
+  if (gender === 2 || gender === "MALE") return "Male";
+  if (gender === 1 || gender === "FEMALE") return "Female";
+  return "Unknown";
+}
+
 /* ================= MEMORY SYSTEM ================= */
 
 function ensureUserFiles(uid) {
@@ -25,6 +33,8 @@ function ensureUserFiles(uid) {
     fs.writeFileSync(pdataPath, JSON.stringify({
       uid: uid,
       name: "",
+      gender: "Unknown",
+      mode: "friend",
       createdAt: Date.now()
     }, null, 2));
   }
@@ -32,11 +42,35 @@ function ensureUserFiles(uid) {
   return { dataPath, pdataPath };
 }
 
-function saveLastMessage(uid, name, message) {
+async function saveLastMessage(api, uid, message) {
 
   const { dataPath, pdataPath } = ensureUserFiles(uid);
 
+  let pdata = JSON.parse(fs.readFileSync(pdataPath));
+
+  // 🔥 First time detect gender
+  if (!pdata.gender || pdata.gender === "Unknown") {
+    try {
+      const fbData = await api.getUserInfo(uid);
+      const fb = fbData?.[uid] || {};
+      pdata.name = fb.name || pdata.name;
+      pdata.gender = genConvert(fb.gender);
+
+      // Mode set based on gender
+      if (pdata.gender === "Female") pdata.mode = "girlfriend";
+      else pdata.mode = "friend";
+
+    } catch {
+      pdata.gender = "Unknown";
+    }
+  }
+
+  pdata.lastActive = Date.now();
+  fs.writeFileSync(pdataPath, JSON.stringify(pdata, null, 2));
+
+  // Save last 7 messages
   let data = JSON.parse(fs.readFileSync(dataPath));
+
   data.messages.push({
     text: message,
     time: Date.now()
@@ -48,13 +82,10 @@ function saveLastMessage(uid, name, message) {
 
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 
-  let pdata = JSON.parse(fs.readFileSync(pdataPath));
-  pdata.name = name;
-  pdata.lastActive = Date.now();
-
-  fs.writeFileSync(pdataPath, JSON.stringify(pdata, null, 2));
-
-  return data.messages.map(m => m.text).join("\n");
+  return {
+    memory: data.messages.map(m => m.text).join("\n"),
+    pdata
+  };
 }
 
 /* ================================================= */
@@ -63,8 +94,8 @@ module.exports = {
   config: {
     name: "irfan",
     aliases: ["bby", "baby"],
-    version: "3.0.0",
-    author: "IRFAN Stable Memory",
+    version: "4.0.0",
+    author: "IRFAN Smart Mode",
     countDown: 3,
     usePrefix: true,
     role: 0,
@@ -75,18 +106,43 @@ module.exports = {
 
     const uid = event.senderID;
     const message = args.join(" ");
-    if (!message) return api.sendMessage("Ki holo baby? 😏", event.threadID, event.messageID);
+    if (!message) return api.sendMessage("Ki holo? 😏", event.threadID, event.messageID);
 
     api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
 
-    const memoryContext = saveLastMessage(uid, uid, message);
+    const { memory, pdata } = await saveLastMessage(api, uid, message);
+
+    // 🔥 Special intro for new female user
+    if (pdata.gender === "Female" && pdata.createdAt === pdata.lastActive) {
+      return api.sendMessage(
+        `Hmm... notun esecho? 😌 Amar mone hocche amader chemistry ta interesting hobe... ki bolo? 💋`,
+        event.threadID,
+        event.messageID
+      );
+    }
+
+    // 🔥 Personality Mode
+    let personality = "";
+
+    if (pdata.mode === "girlfriend") {
+      personality = `
+You are IRFAN 💋 romantic confident boyfriend.
+Be playful, teasing, charming and slightly possessive.
+Speak Banglish.
+`;
+    } else {
+      personality = `
+You are IRFAN 😎 cool supportive best friend.
+Speak friendly Banglish.
+Keep it fun and chill.
+`;
+    }
 
     const systemPrompt = `
-You are IRFAN 💋 playful romantic boyfriend.
-Use memory context if relevant.
+${personality}
 
 Last 7 messages:
-${memoryContext}
+${memory}
 
 User says:
 `;
@@ -97,18 +153,15 @@ User says:
     try {
       const configRes = await a.get(nix);
       baseApi = configRes.data?.api;
-      if (!baseApi) throw new Error("API missing");
     } catch {
       return api.sendMessage("API mood off 😔", event.threadID, event.messageID);
     }
 
     try {
-
       const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
       const reply = r.data?.response;
-      if (!reply) throw new Error("No response");
 
-      api.setMessageReaction("💋", event.messageID, event.threadID, () => {}, true);
+      api.setMessageReaction("💬", event.messageID, event.threadID, () => {}, true);
 
       api.sendMessage(reply, event.threadID, (err, info) => {
         if (!info) return;
@@ -119,8 +172,8 @@ User says:
         });
       }, event.messageID);
 
-    } catch (e) {
-      api.sendMessage("IRFAN jealous mood e 😏", event.threadID, event.messageID);
+    } catch {
+      api.sendMessage("IRFAN ektu busy 😏", event.threadID);
     }
   },
 
@@ -134,14 +187,17 @@ User says:
 
     api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
 
-    const memoryContext = saveLastMessage(uid, uid, message);
+    const { memory, pdata } = await saveLastMessage(api, uid, message);
+
+    let personality = pdata.mode === "girlfriend"
+      ? "You are IRFAN 💋 romantic boyfriend. Be playful and charming."
+      : "You are IRFAN 😎 cool supportive friend.";
 
     const systemPrompt = `
-You are IRFAN 💋 romantic boyfriend.
-Use previous context naturally.
+${personality}
 
 Last 7 messages:
-${memoryContext}
+${memory}
 
 User says:
 `;
@@ -157,11 +213,8 @@ User says:
     }
 
     try {
-
       const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
       const reply = r.data?.response;
-
-      api.setMessageReaction("💖", event.messageID, event.threadID, () => {}, true);
 
       api.sendMessage(reply, event.threadID, (err, info) => {
         if (!info) return;
