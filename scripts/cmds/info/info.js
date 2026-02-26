@@ -1,17 +1,17 @@
 module.exports = {
   config: {
     name: "info",
-    version: "1.0",
-    author: "💻𝑵𝑪-𝑿𝑵𝑰𝑳6𝒙⚡",
+    version: "2.0",
+    author: "💋 𝑰𝑹𝑭𝑨𝑵 𝑫𝒆𝒗",
     countDown: 5,
-    role: 0, // 0 use for everyone, 1 use for box admin, 2 use for bot admin, 3 use for bot Creator
-    premium: false, // ture use only premium user
-    usePrefix: true, // false use without prefix
+    role: 0,
+    premium: false,
+    usePrefix: false,
     shortDescription: {
-      en: "Show bot information"
+      en: "Show IRFAN bot information"
     },
     description: {
-      en: "Display detailed information about NoobCore Bot"
+      en: "Display detailed information about IRFAN 💋"
     },
     category: "utility",
     guide: {
@@ -22,23 +22,26 @@ module.exports = {
   langs: {
     en: {
       infoMessage:
-`╔════════════════════╗
-   🤖 NOOBCORE BOT INFO
-╚════════════════════╝
+`╔═══════════════════════╗
+   💋 𝑰𝑹𝑭𝑨𝑵 𝑩𝑶𝑻 𝑰𝑵𝑭𝑶
+╚═══════════════════════╝
 
-📌 Bot Name: NoobCore-v3
-⚡ Version: 3.0
-👨‍💻 Developer: Noob Programmer
+🤖 Bot Name: 𝑰𝑹𝑭𝑨𝑵 💋
+⚡ Version: 1.0 Flirty Edition
+👑 Creator: IRFAN
 🌐 Platform: Facebook Messenger
-🧠 System: Modular Command + Event Driven
-🔄 Multi AppState: Enabled
+🧠 Personality: Playful • Romantic • Possessive
+🔄 Reply System: Enabled
+
+━━━━━━━━━━━━━━━━━━
 
 Reply with:
-1️⃣ - Show Prefix
-2️⃣ - Show Admin List
-3️⃣ - Show Creator ID
 
-React ❤️ to get uptime status.
+1️⃣  ➤ Show Prefix  
+2️⃣  ➤ Show Admin List  
+3️⃣  ➤ Show Creator ID  
+
+React ❤️ to see how long IRFAN stayed for you 😏
 `
     }
   },
@@ -49,14 +52,12 @@ React ❤️ to get uptime status.
     await api.sendMessage(message, event.threadID, (error, info) => {
       if (error) return console.log(error);
 
-      // Reply handler
       global.noobCore.ncReply.set(info.messageID, {
         commandName: this.config.name,
         messageID: info.messageID,
         author: event.senderID
       });
 
-      // Reaction handler
       global.noobCore.ncReaction.set(info.messageID, {
         commandName: this.config.name,
         messageID: info.messageID,
@@ -66,14 +67,13 @@ React ❤️ to get uptime status.
     }, event.messageID);
   },
 
-  // Handle Reply
   ncReply: async function ({ api, event }) {
     const { body, threadID, messageID } = event;
     const ncsetting = global.noobCore.ncsetting;
 
     if (body === "1") {
       return api.sendMessage(
-        `🔹 Current Prefix: ${ncsetting.prefix}`,
+        `💋 Baby, amar prefix holo: ${ncsetting.prefix}`,
         threadID,
         messageID
       );
@@ -81,7 +81,7 @@ React ❤️ to get uptime status.
 
     if (body === "2") {
       return api.sendMessage(
-        `👮 Admin List:\n${ncsetting.adminBot.join("\n")}`,
+        `👮 Amar trusted admins:\n${ncsetting.adminBot.join("\n")}`,
         threadID,
         messageID
       );
@@ -89,14 +89,13 @@ React ❤️ to get uptime status.
 
     if (body === "3") {
       return api.sendMessage(
-        `👑 Creator ID:\n${ncsetting.creator.join("\n")}`,
+        `👑 Amar Creator ID:\n${ncsetting.creator.join("\n")}`,
         threadID,
         messageID
       );
     }
   },
 
-  // Handle Reaction
   ncReaction: async function ({ api, event }) {
     if (event.reaction !== "❤") return;
 
@@ -106,7 +105,7 @@ React ❤️ to get uptime status.
     const seconds = Math.floor(uptime % 60);
 
     return api.sendMessage(
-      `⏳ Bot Uptime:\n${hours}h ${minutes}m ${seconds}s`,
+      `⏳ IRFAN tomar jonno online ache:\n${hours}h ${minutes}m ${seconds}s 💖`,
       event.threadID,
       event.messageID
     );
