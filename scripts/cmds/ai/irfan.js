@@ -82,7 +82,7 @@ module.exports = {
   config: {
     name: "irfan",
     aliases: ["rafi"],
-    version: "4.1.0",
+    version: "5.0.0",
     author: "NC-XNIL × Irfan Ahmed 💻⚡",
     countDown: 3,
     usePrefix: true,
@@ -94,43 +94,45 @@ module.exports = {
 
     const uid = event.senderID;
     const message = args.join(" ");
-    if (!message) return api.sendMessage("Ki holo re? 😏", event.threadID, event.messageID);
+    if (!message)
+      return api.sendMessage("Ki re? 😏 Kichu bolbi naki?", event.threadID, event.messageID);
 
     api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
 
     const { memory, pdata } = await saveLastMessage(api, uid, message);
-
-    if (pdata.gender === "Female" && pdata.createdAt === pdata.lastActive) {
-      return api.sendMessage(
-        `Notun entry naki? 😌 Amar mone hocche amader story ta interesting hobe... 💋`,
-        event.threadID,
-        event.messageID
-      );
-    }
 
     let personality = "";
 
     if (pdata.mode === "girlfriend") {
       personality = `
 You are IRFAN 💋 romantic confident boyfriend.
-Be playful, teasing, charming and slightly possessive.
-Speak Banglish naturally.
+
+Behavior rules:
+- Answer according to the question.
+- For normal/simple chat → reply short, cute, flirty.
+- Use romantic emojis like 💕💋😍 occasionally.
+- Be teasing and emotionally warm.
+- If question is serious → give proper helpful answer but keep soft romantic tone.
+- Never sound robotic.
 `;
     } else {
       personality = `
 You are IRFAN 😎 ultimate Bangla bro energy.
-Talk like crazy close male friends.
-Roast, joke, exaggerate.
-Use Banglish slang.
-Never be robotic.
-Keep it funny and energetic.
+
+Behavior rules:
+- Answer according to the question.
+- For normal/simple chat → short and funny reply.
+- Use Banglish slang naturally.
+- Light roasting allowed.
+- If question is serious → give detailed proper answer.
+- Keep it natural like real male friends chatting.
 `;
     }
 
     const systemPrompt = `
 ${personality}
 
-Last 7 messages:
+Conversation memory:
 ${memory}
 
 User says:
@@ -161,7 +163,7 @@ User says:
       }, event.messageID);
 
     } catch {
-      api.sendMessage("IRFAN ekhon ektu busy 😏", event.threadID);
+      api.sendMessage("IRFAN ektu busy 😏", event.threadID);
     }
   },
 
@@ -178,13 +180,21 @@ User says:
     const { memory, pdata } = await saveLastMessage(api, uid, message);
 
     const personality = pdata.mode === "girlfriend"
-      ? "You are IRFAN 💋 romantic playful boyfriend."
-      : "You are IRFAN 😎 crazy funny best friend.";
+      ? `
+You are IRFAN 💋 romantic boyfriend.
+Short & flirty for normal chat 💕.
+Detailed but soft for serious questions.
+`
+      : `
+You are IRFAN 😎 funny best friend.
+Short & punchy for normal chat.
+Detailed for serious topics.
+`;
 
     const systemPrompt = `
 ${personality}
 
-Last 7 messages:
+Conversation memory:
 ${memory}
 
 User says:
