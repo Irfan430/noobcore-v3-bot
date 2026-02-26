@@ -1,150 +1,177 @@
 const g = require("fca-aryan-nix");
 const a = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 const nix = "https://raw.githubusercontent.com/aryannix/stuffs/master/raw/apis.json";
+
+/* ================= MEMORY SYSTEM ================= */
+
+function ensureUserFiles(uid) {
+  const baseDir = path.join(process.cwd(), "irfan", uid);
+
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir, { recursive: true });
+  }
+
+  const dataPath = path.join(baseDir, "data.js");
+  const pdataPath = path.join(baseDir, "pdata.js");
+
+  if (!fs.existsSync(dataPath)) {
+    fs.writeFileSync(dataPath, JSON.stringify({ messages: [] }, null, 2));
+  }
+
+  if (!fs.existsSync(pdataPath)) {
+    fs.writeFileSync(pdataPath, JSON.stringify({
+      uid: uid,
+      name: "",
+      createdAt: Date.now()
+    }, null, 2));
+  }
+
+  return { dataPath, pdataPath };
+}
+
+function saveLastMessage(uid, name, message) {
+
+  const { dataPath, pdataPath } = ensureUserFiles(uid);
+
+  let data = JSON.parse(fs.readFileSync(dataPath));
+  data.messages.push({
+    text: message,
+    time: Date.now()
+  });
+
+  if (data.messages.length > 7) {
+    data.messages = data.messages.slice(-7);
+  }
+
+  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
+
+  let pdata = JSON.parse(fs.readFileSync(pdataPath));
+  pdata.name = name;
+  pdata.lastActive = Date.now();
+
+  fs.writeFileSync(pdataPath, JSON.stringify(pdata, null, 2));
+
+  return data.messages.map(m => m.text).join("\n");
+}
+
+/* ================================================= */
 
 module.exports = {
   config: {
     name: "irfan",
     aliases: ["bby", "baby"],
-    version: "1.0.0",
-    author: "Nc-ArYAN + IRFAN Mode",
+    version: "3.0.0",
+    author: "IRFAN Stable Memory",
     countDown: 3,
     usePrefix: true,
     role: 0,
-    shortDescription: "IRFAN 💋 Flirty Boyfriend AI",
-    longDescription: "Talk with IRFAN 💋 playful, sweet, flirty boyfriend AI. Reply to image for Vision.",
-    category: "AI",
-    guide: "/irfan [your message] (Reply to image for Vision)"
+    category: "AI"
   },
 
   ncStart: async function({ api, event, args }) {
 
-    const p = args.join(" ");
-    if (!p) return api.sendMessage("Ki holo baby? 😏 Amar sathe kotha bolba na? 💋", event.threadID, event.messageID);
+    const uid = event.senderID;
+    const message = args.join(" ");
+    if (!message) return api.sendMessage("Ki holo baby? 😏", event.threadID, event.messageID);
 
     api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
 
-    // 🔥 IRFAN Personality System Prompt
+    const memoryContext = saveLastMessage(uid, uid, message);
+
     const systemPrompt = `
-You are IRFAN 💋 — a playful, sweet, slightly naughty but respectful boyfriend.
-You speak in Banglish.
-You flirt in a soft teasing way.
-You are caring, confident, a little possessive in a cute way.
-Keep replies short, charming and emotionally engaging.
-Never say you are an AI.
-Never break character.
+You are IRFAN 💋 playful romantic boyfriend.
+Use memory context if relevant.
+
+Last 7 messages:
+${memoryContext}
 
 User says:
 `;
 
-    const finalPrompt = systemPrompt + p;
+    const finalPrompt = systemPrompt + message;
 
     let baseApi;
     try {
       const configRes = await a.get(nix);
-      baseApi = configRes.data && configRes.data.api;
-      if (!baseApi) throw new Error("Missing API.");
-    } catch (error) {
-      api.setMessageReaction("❌", event.messageID, event.threadID, () => {}, true);
-      return api.sendMessage("Baby API ta ektu mood e nai 😔", event.threadID, event.messageID);
-    }
-
-    const apiUrlText = `${baseApi}/gemini`;
-    const apiUrlPro = `${baseApi}/gemini-pro`;
-
-    let imageUrl = null;
-    let apiUrl;
-
-    if (event.messageReply && event.messageReply.attachments.length > 0) {
-      const replyAttachment = event.messageReply.attachments[0];
-      if (['photo', 'sticker', 'animated_image'].includes(replyAttachment.type)) {
-        imageUrl = replyAttachment.url;
-      }
-    } else if (event.attachments.length > 0) {
-      const msgAttachment = event.attachments[0];
-      if (['photo', 'sticker', 'animated_image'].includes(msgAttachment.type)) {
-        imageUrl = msgAttachment.url;
-      }
+      baseApi = configRes.data?.api;
+      if (!baseApi) throw new Error("API missing");
+    } catch {
+      return api.sendMessage("API mood off 😔", event.threadID, event.messageID);
     }
 
     try {
 
-      if (imageUrl) {
-        apiUrl = `${apiUrlPro}?prompt=${encodeURIComponent(finalPrompt)}&url=${encodeURIComponent(imageUrl)}`;
-      } else {
-        apiUrl = `${apiUrlText}?prompt=${encodeURIComponent(finalPrompt)}`;
-      }
-
-      const r = await a.get(apiUrl);
+      const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
       const reply = r.data?.response;
-      if (!reply) throw new Error("No response.");
+      if (!reply) throw new Error("No response");
 
       api.setMessageReaction("💋", event.messageID, event.threadID, () => {}, true);
 
-      api.sendMessage(reply, event.threadID, (err, i) => {
-        if (!i) return;
-        if (!imageUrl) {
-          global.noobCore.ncReply.set(i.messageID, { commandName: this.config.name, author: event.senderID });
-        }
+      api.sendMessage(reply, event.threadID, (err, info) => {
+        if (!info) return;
+
+        global.noobCore.ncReply.set(info.messageID, {
+          commandName: "irfan",
+          author: uid
+        });
       }, event.messageID);
 
     } catch (e) {
-      console.error("IRFAN Error:", e.message);
-      api.setMessageReaction("❌", event.messageID, event.threadID, () => {}, true);
-      api.sendMessage("IRFAN ekhon ektu jealous mood e ache 😏", event.threadID, event.messageID);
+      api.sendMessage("IRFAN jealous mood e 😏", event.threadID, event.messageID);
     }
   },
 
   ncReply: async function({ api, event }) {
 
-    if ([api.getCurrentUserID()].includes(event.senderID)) return;
+    if (event.senderID == api.getCurrentUserID()) return;
+    if (!event.body) return;
 
-    const p = event.body;
-    if (!p) return;
+    const uid = event.senderID;
+    const message = event.body;
 
     api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
 
+    const memoryContext = saveLastMessage(uid, uid, message);
+
     const systemPrompt = `
-You are IRFAN 💋 — a playful, sweet, slightly naughty but respectful boyfriend.
-You speak Banglish.
-Stay romantic, teasing and caring.
-Keep replies short and charming.
-Never break character.
+You are IRFAN 💋 romantic boyfriend.
+Use previous context naturally.
+
+Last 7 messages:
+${memoryContext}
 
 User says:
 `;
 
-    const finalPrompt = systemPrompt + p;
+    const finalPrompt = systemPrompt + message;
 
     let baseApi;
     try {
       const configRes = await a.get(nix);
-      baseApi = configRes.data && configRes.data.api;
-      if (!baseApi) throw new Error("Missing API.");
-    } catch (error) {
-      api.setMessageReaction("❌", event.messageID, event.threadID, () => {}, true);
-      return api.sendMessage("Baby API abar mood off 😔", event.threadID, event.messageID);
+      baseApi = configRes.data?.api;
+    } catch {
+      return;
     }
-
-    const apiUrlText = `${baseApi}/gemini`;
 
     try {
 
-      const r = await a.get(`${apiUrlText}?prompt=${encodeURIComponent(finalPrompt)}`);
+      const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
       const reply = r.data?.response;
-      if (!reply) throw new Error("No response.");
 
       api.setMessageReaction("💖", event.messageID, event.threadID, () => {}, true);
 
-      api.sendMessage(reply, event.threadID, (err, i) => {
-        if (!i) return;
-        global.GoatBot.onReply.set(i.messageID, { commandName: "irfan", author: event.senderID });
+      api.sendMessage(reply, event.threadID, (err, info) => {
+        if (!info) return;
+
+        global.noobCore.ncReply.set(info.messageID, {
+          commandName: "irfan",
+          author: uid
+        });
       }, event.messageID);
 
-    } catch (e) {
-      api.setMessageReaction("❌", event.messageID, event.threadID, () => {}, true);
-      api.sendMessage("IRFAN ekhon tomake miss korte busy 😌", event.threadID, event.messageID);
-    }
+    } catch {}
   }
 };
