@@ -21,7 +21,8 @@
         {
                 "version": "3.0.4",
                 "files": {
-                        "fca-unofficial": "fix"
+                        "fca-unofficial": "fix",
+                        "update": "fix"
                 }
         }
 
