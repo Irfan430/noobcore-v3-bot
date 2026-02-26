@@ -20,6 +20,40 @@
 
 ---
 
+
+# 🗂️ Folder Layout
+
+```bash
+NoobCore-v3-Bot/
+│
+├── index.js
+├── NoobCore.js
+├── config.json
+├── configCommands.json
+│
+├── ncstate.json
+├── ncstate2.json
+├── ncstate3.json
+│
+├── core/
+│   ├── logger/
+│   ├── login/
+│   ├── database/
+│   └── handler/
+│
+├── fca-unofficial/
+│
+├── scripts/
+│   ├── cmds/
+│   └── events/
+│
+└── public/
+    ├── app.js
+    └── index.html
+```
+
+---
+
 # 📁 Project Structure
 
 | 📂 File / Folder | 📝 Description | ⚙️ Role |
@@ -159,70 +193,6 @@ React ❤️ to get uptime status.
   }
 };
 ```
-
----
-
-# 🗂️ Folder Layout
-
-```bash
-NoobCore-v3-Bot/
-│
-├── index.js
-├── NoobCore.js
-├── config.json
-├── configCommands.json
-│
-├── ncstate.json
-├── ncstate2.json
-├── ncstate3.json
-│
-├── core/
-│   ├── logger/
-│   ├── login/
-│   ├── database/
-│   └── handler/
-│
-├── fca-unofficial/
-│
-├── scripts/
-│   ├── cmds/
-│   └── events/
-│
-└── public/
-    ├── app.js
-    └── index.html
-```
-
----
-
-# ⚡ Features
-
-- 🔄 Multi AppState Auto Switch System
-- 🤖 Modular Command Loader
-- 📡 Event Driven Architecture
-- 🌐 Express Dashboard
-- 🔁 Optional Auto Git Push
-- 🗄️ Database Integrated System
-- 🎛️ Per Command Config Control
-
----
-
-# 🚀 Installation Guide
-
-```bash
-git clone https://github.com/yourusername/NoobCore-v3-Bot.git
-cd NoobCore-v3-Bot
-npm install
-```
-
----
-
-# ▶️ Start Bot
-
-```bash
-node index.js
-```
-
 ---
 
 # ⚙️ Configuration
@@ -262,6 +232,38 @@ Edit `config.json`
   "creator": [
     "61558762813083"
   ],
+```
+
+---
+
+---
+
+# ⚡ Features
+
+- 🔄 Multi AppState Auto Switch System
+- 🤖 Modular Command Loader
+- 📡 Event Driven Architecture
+- 🌐 Express Dashboard
+- 🔁 Optional Auto Git Push
+- 🗄️ Database Integrated System
+- 🎛️ Per Command Config Control
+
+---
+
+# 🚀 Installation Guide
+
+```bash
+git clone https://github.com/yourusername/NoobCore-v3-Bot.git
+cd NoobCore-v3-Bot
+npm install
+```
+
+---
+
+# ▶️ Start Bot
+
+```bash
+node index.js
 ```
 
 ---
