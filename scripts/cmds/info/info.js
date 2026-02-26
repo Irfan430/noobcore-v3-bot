@@ -1,17 +1,17 @@
 module.exports = {
   config: {
     name: "info",
-    version: "2.0",
-    author: "💋 𝑰𝑹𝑭𝑨𝑵 𝑫𝒆𝒗",
+    version: "2.1",
+    author: "IRFAN System",
     countDown: 5,
     role: 0,
     premium: false,
-    usePrefix: false,
+    usePrefix: true,
     shortDescription: {
-      en: "Show IRFAN bot information"
+      en: "Show bot information"
     },
     description: {
-      en: "Display detailed information about IRFAN 💋"
+      en: "Display dynamic bot information from config"
     },
     category: "utility",
     guide: {
@@ -19,19 +19,30 @@ module.exports = {
     }
   },
 
-  langs: {
-    en: {
-      infoMessage:
-`╔═══════════════════════╗
-   💋 𝑰𝑹𝑭𝑨𝑵 𝑩𝑶𝑻 𝑰𝑵𝑭𝑶
+  ncStart: async function ({ api, event }) {
+
+    const ncsetting = global.noobCore.ncsetting;
+
+    const botName = ncsetting.nickNameBot || "Unknown";
+    const prefix = ncsetting.prefix || "!";
+    const adminList = ncsetting.adminBot?.join("\n") || "None";
+    const creatorList = ncsetting.creator?.join("\n") || "None";
+    const port = ncsetting.port || "N/A";
+    const language = ncsetting.language || "N/A";
+
+    const message = `
+╔═══════════════════════╗
+   🤖 ${botName} INFO
 ╚═══════════════════════╝
 
-🤖 Bot Name: 𝑰𝑹𝑭𝑨𝑵 💋
-⚡ Version: 1.0 Flirty Edition
-👑 Creator: IRFAN
-🌐 Platform: Facebook Messenger
-🧠 Personality: Playful • Romantic • Possessive
-🔄 Reply System: Enabled
+⚡ Prefix: ${prefix}
+🌐 Port: ${port}
+🗣 Language: ${language}
+👮 Admins:
+${adminList}
+
+👑 Creator:
+${creatorList}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -41,13 +52,8 @@ Reply with:
 2️⃣  ➤ Show Admin List  
 3️⃣  ➤ Show Creator ID  
 
-React ❤️ to see how long IRFAN stayed for you 😏
-`
-    }
-  },
-
-  ncStart: async function ({ api, event }) {
-    const message = this.langs.en.infoMessage;
+React ❤️ to see uptime
+`;
 
     await api.sendMessage(message, event.threadID, (error, info) => {
       if (error) return console.log(error);
@@ -68,12 +74,13 @@ React ❤️ to see how long IRFAN stayed for you 😏
   },
 
   ncReply: async function ({ api, event }) {
+
     const { body, threadID, messageID } = event;
     const ncsetting = global.noobCore.ncsetting;
 
     if (body === "1") {
       return api.sendMessage(
-        `💋 Baby, amar prefix holo: ${ncsetting.prefix}`,
+        `🔹 Current Prefix: ${ncsetting.prefix}`,
         threadID,
         messageID
       );
@@ -81,7 +88,7 @@ React ❤️ to see how long IRFAN stayed for you 😏
 
     if (body === "2") {
       return api.sendMessage(
-        `👮 Amar trusted admins:\n${ncsetting.adminBot.join("\n")}`,
+        `👮 Admin List:\n${ncsetting.adminBot.join("\n")}`,
         threadID,
         messageID
       );
@@ -89,7 +96,7 @@ React ❤️ to see how long IRFAN stayed for you 😏
 
     if (body === "3") {
       return api.sendMessage(
-        `👑 Amar Creator ID:\n${ncsetting.creator.join("\n")}`,
+        `👑 Creator ID:\n${ncsetting.creator.join("\n")}`,
         threadID,
         messageID
       );
@@ -97,6 +104,7 @@ React ❤️ to see how long IRFAN stayed for you 😏
   },
 
   ncReaction: async function ({ api, event }) {
+
     if (event.reaction !== "❤") return;
 
     const uptime = process.uptime();
@@ -105,7 +113,7 @@ React ❤️ to see how long IRFAN stayed for you 😏
     const seconds = Math.floor(uptime % 60);
 
     return api.sendMessage(
-      `⏳ IRFAN tomar jonno online ache:\n${hours}h ${minutes}m ${seconds}s 💖`,
+      `⏳ Bot Uptime:\n${hours}h ${minutes}m ${seconds}s`,
       event.threadID,
       event.messageID
     );
