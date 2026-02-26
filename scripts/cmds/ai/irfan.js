@@ -95,7 +95,7 @@ module.exports = {
     name: "irfan",
     aliases: ["bby", "baby"],
     version: "4.0.0",
-    author: "IRFAN Smart Mode",
+    author: "NC-XNIL × Irfan Ahmed 💻⚡",
     countDown: 3,
     usePrefix: true,
     role: 0,
