@@ -45,21 +45,15 @@ function ensureUserFiles(uid) {
 async function saveLastMessage(api, uid, message) {
 
   const { dataPath, pdataPath } = ensureUserFiles(uid);
-
   let pdata = JSON.parse(fs.readFileSync(pdataPath));
 
-  // 🔥 First time detect gender
   if (!pdata.gender || pdata.gender === "Unknown") {
     try {
       const fbData = await api.getUserInfo(uid);
       const fb = fbData?.[uid] || {};
       pdata.name = fb.name || pdata.name;
       pdata.gender = genConvert(fb.gender);
-
-      // Mode set based on gender
-      if (pdata.gender === "Female") pdata.mode = "girlfriend";
-      else pdata.mode = "friend";
-
+      pdata.mode = pdata.gender === "Female" ? "girlfriend" : "friend";
     } catch {
       pdata.gender = "Unknown";
     }
@@ -68,17 +62,11 @@ async function saveLastMessage(api, uid, message) {
   pdata.lastActive = Date.now();
   fs.writeFileSync(pdataPath, JSON.stringify(pdata, null, 2));
 
-  // Save last 7 messages
   let data = JSON.parse(fs.readFileSync(dataPath));
+  data.messages.push({ text: message, time: Date.now() });
 
-  data.messages.push({
-    text: message,
-    time: Date.now()
-  });
-
-  if (data.messages.length > 7) {
+  if (data.messages.length > 7)
     data.messages = data.messages.slice(-7);
-  }
 
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 
@@ -93,8 +81,8 @@ async function saveLastMessage(api, uid, message) {
 module.exports = {
   config: {
     name: "irfan",
-    aliases: ["bby", "baby"],
-    version: "4.0.0",
+    aliases: ["rafi"],
+    version: "4.1.0",
     author: "NC-XNIL × Irfan Ahmed 💻⚡",
     countDown: 3,
     usePrefix: true,
@@ -106,35 +94,36 @@ module.exports = {
 
     const uid = event.senderID;
     const message = args.join(" ");
-    if (!message) return api.sendMessage("Ki holo? 😏", event.threadID, event.messageID);
+    if (!message) return api.sendMessage("Ki holo re? 😏", event.threadID, event.messageID);
 
     api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
 
     const { memory, pdata } = await saveLastMessage(api, uid, message);
 
-    // 🔥 Special intro for new female user
     if (pdata.gender === "Female" && pdata.createdAt === pdata.lastActive) {
       return api.sendMessage(
-        `Hmm... notun esecho? 😌 Amar mone hocche amader chemistry ta interesting hobe... ki bolo? 💋`,
+        `Notun entry naki? 😌 Amar mone hocche amader story ta interesting hobe... 💋`,
         event.threadID,
         event.messageID
       );
     }
 
-    // 🔥 Personality Mode
     let personality = "";
 
     if (pdata.mode === "girlfriend") {
       personality = `
 You are IRFAN 💋 romantic confident boyfriend.
 Be playful, teasing, charming and slightly possessive.
-Speak Banglish.
+Speak Banglish naturally.
 `;
     } else {
       personality = `
-You are IRFAN 😎 cool supportive best friend.
-Speak friendly Banglish.
-Keep it fun and chill.
+You are IRFAN 😎 ultimate Bangla bro energy.
+Talk like crazy close male friends.
+Roast, joke, exaggerate.
+Use Banglish slang.
+Never be robotic.
+Keep it funny and energetic.
 `;
     }
 
@@ -161,11 +150,10 @@ User says:
       const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
       const reply = r.data?.response;
 
-      api.setMessageReaction("💬", event.messageID, event.threadID, () => {}, true);
+      api.setMessageReaction("🔥", event.messageID, event.threadID, () => {}, true);
 
       api.sendMessage(reply, event.threadID, (err, info) => {
         if (!info) return;
-
         global.noobCore.ncReply.set(info.messageID, {
           commandName: "irfan",
           author: uid
@@ -173,7 +161,7 @@ User says:
       }, event.messageID);
 
     } catch {
-      api.sendMessage("IRFAN ektu busy 😏", event.threadID);
+      api.sendMessage("IRFAN ekhon ektu busy 😏", event.threadID);
     }
   },
 
@@ -189,9 +177,9 @@ User says:
 
     const { memory, pdata } = await saveLastMessage(api, uid, message);
 
-    let personality = pdata.mode === "girlfriend"
-      ? "You are IRFAN 💋 romantic boyfriend. Be playful and charming."
-      : "You are IRFAN 😎 cool supportive friend.";
+    const personality = pdata.mode === "girlfriend"
+      ? "You are IRFAN 💋 romantic playful boyfriend."
+      : "You are IRFAN 😎 crazy funny best friend.";
 
     const systemPrompt = `
 ${personality}
@@ -208,9 +196,7 @@ User says:
     try {
       const configRes = await a.get(nix);
       baseApi = configRes.data?.api;
-    } catch {
-      return;
-    }
+    } catch { return; }
 
     try {
       const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
@@ -218,7 +204,6 @@ User says:
 
       api.sendMessage(reply, event.threadID, (err, info) => {
         if (!info) return;
-
         global.noobCore.ncReply.set(info.messageID, {
           commandName: "irfan",
           author: uid
