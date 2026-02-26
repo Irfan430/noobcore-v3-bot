@@ -291,5 +291,5 @@ This project is licensed under the MIT License.
 ---
 
 <h3 align="center">
-  💻 Developed with ❤️ by Noob Programmer
+  💻 Developed with ❤️ by NoobCore
 </h3>
