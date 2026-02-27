@@ -17,7 +17,7 @@ module.exports = {
 
   config: {
     name: "amv",
-    aliases: ["anieditz", "animeedit"],
+    aliases: ["anieditz", "aniedit"],
     version: "5.6",
     author: "💻𝑵𝑪-𝑻𝑶𝑺𝑯𝑰𝑹𝑶⚡",
     role: 0,
@@ -28,7 +28,7 @@ module.exports = {
 
   ncStart: async function ({ api, event, args, langs }) {
 
-    // ✅ Safe langs fallback
+
     const l = langs?.en || {
       searching: "🔍 Searching AMV...",
       notFound: "❌ No AMV found for your query.",
@@ -74,7 +74,7 @@ module.exports = {
       const stats = fs.statSync(filePath);
       if (stats.size === 0) throw new Error("Empty file");
 
-      // ✅ Fixed block style body
+      
       const styledBody = `┏━━━━━━━━━━━━━┓
 🎬 Anime Edit Incoming!
 💠 Title: ${data.title || "Unknown"}
@@ -89,7 +89,7 @@ module.exports = {
         },
         event.threadID,
         () => {
-          // cleanup after send
+          
           if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         },
         event.messageID

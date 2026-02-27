@@ -28,8 +28,8 @@ module.exports = {
         {
           body: "𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝐜𝐝𝐩! 😘✨️",
           attachment: await Promise.all([
-            global.utils.getStreamFromURL(boy),
-            global.utils.getStreamFromURL(girl)
+            global.utils.getStreamFromURL(girl),
+            global.utils.getStreamFromURL(boy)
           ])
         },
         event.threadID,
