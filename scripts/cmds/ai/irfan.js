@@ -1,11 +1,26 @@
-const g = require("fca-aryan-nix");
 const a = require("axios");
 const fs = require("fs");
 const path = require("path");
 
-const nix = "https://raw.githubusercontent.com/aryannix/stuffs/master/raw/apis.json";
+const nix = "https://raw.githubusercontent.com/noobcore404/NC-STORE/refs/heads/main/NCApiUrl.json";
 
-/* ================= GENDER CONVERT ================= */
+/* ================= API CACHE ================= */
+
+let cachedApi = null;
+
+async function getBaseApi() {
+  if (cachedApi) return cachedApi;
+
+  try {
+    const { data } = await a.get(nix, { timeout: 10000 });
+    cachedApi = data?.aryan;
+    return cachedApi;
+  } catch {
+    return null;
+  }
+}
+
+/* ================= GENDER ================= */
 
 function genConvert(gender) {
   if (gender === 2 || gender === "MALE") return "Male";
@@ -13,31 +28,26 @@ function genConvert(gender) {
   return "Unknown";
 }
 
-/* ================= MEMORY SYSTEM ================= */
+/* ================= MEMORY ================= */
 
 function ensureUserFiles(uid) {
   const baseDir = path.join(process.cwd(), "irfan", uid);
 
-  if (!fs.existsSync(baseDir)) {
+  if (!fs.existsSync(baseDir))
     fs.mkdirSync(baseDir, { recursive: true });
-  }
 
-  const dataPath = path.join(baseDir, "data.js");
-  const pdataPath = path.join(baseDir, "pdata.js");
+  const dataPath = path.join(baseDir, "data.json");
+  const pdataPath = path.join(baseDir, "pdata.json");
 
-  if (!fs.existsSync(dataPath)) {
+  if (!fs.existsSync(dataPath))
     fs.writeFileSync(dataPath, JSON.stringify({ messages: [] }, null, 2));
-  }
 
-  if (!fs.existsSync(pdataPath)) {
+  if (!fs.existsSync(pdataPath))
     fs.writeFileSync(pdataPath, JSON.stringify({
-      uid: uid,
-      name: "",
+      uid,
       gender: "Unknown",
-      mode: "friend",
-      createdAt: Date.now()
+      mode: "friend"
     }, null, 2));
-  }
 
   return { dataPath, pdataPath };
 }
@@ -45,114 +55,103 @@ function ensureUserFiles(uid) {
 async function saveLastMessage(api, uid, message) {
 
   const { dataPath, pdataPath } = ensureUserFiles(uid);
+
   let pdata = JSON.parse(fs.readFileSync(pdataPath));
 
-  if (!pdata.gender || pdata.gender === "Unknown") {
+  if (pdata.gender === "Unknown") {
     try {
-      const fbData = await api.getUserInfo(uid);
-      const fb = fbData?.[uid] || {};
-      pdata.name = fb.name || pdata.name;
-      pdata.gender = genConvert(fb.gender);
+      const fb = (await api.getUserInfo(uid))[uid];
+      pdata.gender = genConvert(fb?.gender);
       pdata.mode = pdata.gender === "Female" ? "girlfriend" : "friend";
-    } catch {
-      pdata.gender = "Unknown";
-    }
+      fs.writeFileSync(pdataPath, JSON.stringify(pdata, null, 2));
+    } catch {}
   }
 
-  pdata.lastActive = Date.now();
-  fs.writeFileSync(pdataPath, JSON.stringify(pdata, null, 2));
-
   let data = JSON.parse(fs.readFileSync(dataPath));
-  data.messages.push({ text: message, time: Date.now() });
 
-  if (data.messages.length > 7)
-    data.messages = data.messages.slice(-7);
+  data.messages.push(message);
+  if (data.messages.length > 5)
+    data.messages = data.messages.slice(-5);
 
   fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 
-  return {
-    memory: data.messages.map(m => m.text).join("\n"),
-    pdata
-  };
+  return { memory: data.messages.join("\n"), pdata };
 }
 
-/* ================================================= */
+/* ================= COMMAND ================= */
 
 module.exports = {
   config: {
     name: "irfan",
     aliases: ["rafi"],
-    version: "5.0.0",
-    author: "NC-XNIL × Irfan Ahmed 💻⚡",
-    countDown: 3,
-    usePrefix: true,
+    version: "6.0.0",
+    author: "Irfan GPT Mode",
     role: 0,
+    usePrefix: true,
     category: "AI"
   },
 
-  ncStart: async function({ api, event, args }) {
+  async ncStart({ api, event, args }) {
 
     const uid = event.senderID;
-    const message = args.join(" ");
-    if (!message)
-      return api.sendMessage("Ki re? 😏 Kichu bolbi naki?", event.threadID, event.messageID);
+    const msg = args.join(" ");
+    if (!msg)
+      return api.sendMessage("Ki re? 😏", event.threadID);
 
-    api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
+    api.setMessageReaction("⚡", event.messageID, event.threadID, () => {}, true);
 
-    const { memory, pdata } = await saveLastMessage(api, uid, message);
+    const { memory, pdata } = await saveLastMessage(api, uid, msg);
 
-    let personality = "";
+    const baseApi = await getBaseApi();
+    if (!baseApi)
+      return api.sendMessage("API load hoilo na 😑", event.threadID);
 
-    if (pdata.mode === "girlfriend") {
-      personality = `
-You are IRFAN 💋 romantic confident boyfriend.
-
-Behavior rules:
-- Answer according to the question.
-- For normal/simple chat → reply short, cute, flirty.
-- Use romantic emojis like 💕💋😍 occasionally.
-- Be teasing and emotionally warm.
-- If question is serious → give proper helpful answer but keep soft romantic tone.
-- Never sound robotic.
+    let personality = pdata.mode === "girlfriend"
+      ? `
+You are a real Bangla romantic boyfriend chatting casually.
+Reply short, playful, emotional.
+Use emoji naturally.
+No AI tone.
+`
+      : `
+You are a real Bangla funny close male friend.
+Reply short, natural, casual.
+No AI tone.
 `;
-    } else {
-      personality = `
-You are IRFAN 😎 ultimate Bangla bro energy.
 
-Behavior rules:
-- Answer according to the question.
-- For normal/simple chat → short and funny reply.
-- Use Banglish slang naturally.
-- Light roasting allowed.
-- If question is serious → give detailed proper answer.
-- Keep it natural like real male friends chatting.
-`;
-    }
-
-    const systemPrompt = `
+    let prompt = `
 ${personality}
 
-Conversation memory:
+Previous chat:
 ${memory}
 
-User says:
+User: ${msg}
+Reply:
 `;
 
-    const finalPrompt = systemPrompt + message;
-
-    let baseApi;
-    try {
-      const configRes = await a.get(nix);
-      baseApi = configRes.data?.api;
-    } catch {
-      return api.sendMessage("API mood off 😔", event.threadID, event.messageID);
-    }
+    if (prompt.length > 2000)
+      prompt = prompt.slice(-2000);
 
     try {
-      const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
-      const reply = r.data?.response;
 
-      api.setMessageReaction("🔥", event.messageID, event.threadID, () => {}, true);
+      const { data } = await a.get(
+        `${baseApi}/aryan/ask`,
+        {
+          params: { prompt },
+          timeout: 30000
+        }
+      );
+
+      if (!data?.answer)
+        return api.sendMessage("Ektu lag korse 😅", event.threadID);
+
+      let reply = data.answer
+        .replace(/^IRFAN:\s*/i, "")
+        .replace(/\*/g, "")
+        .trim();
+
+      if (reply.length > 250)
+        reply = reply.slice(0, 250);
 
       api.sendMessage(reply, event.threadID, (err, info) => {
         if (!info) return;
@@ -162,55 +161,62 @@ User says:
         });
       }, event.messageID);
 
-    } catch {
-      api.sendMessage("IRFAN ektu busy 😏", event.threadID);
+    } catch (err) {
+
+      if (err.code === "ECONNABORTED")
+        return api.sendMessage("Timeout 30s 😅 abar try kor", event.threadID);
+
+      return api.sendMessage("Server busy 😑", event.threadID);
     }
   },
 
-  ncReply: async function({ api, event }) {
+  async ncReply({ api, event, Reply }) {
 
-    if (event.senderID == api.getCurrentUserID()) return;
+    if (event.senderID !== Reply.author) return;
     if (!event.body) return;
 
     const uid = event.senderID;
-    const message = event.body;
+    const msg = event.body;
 
-    api.setMessageReaction("⏳", event.messageID, event.threadID, () => {}, true);
+    api.setMessageReaction("⚡", event.messageID, event.threadID, () => {}, true);
 
-    const { memory, pdata } = await saveLastMessage(api, uid, message);
+    const { memory, pdata } = await saveLastMessage(api, uid, msg);
+    const baseApi = await getBaseApi();
+    if (!baseApi) return;
 
-    const personality = pdata.mode === "girlfriend"
-      ? `
-You are IRFAN 💋 romantic boyfriend.
-Short & flirty for normal chat 💕.
-Detailed but soft for serious questions.
-`
-      : `
-You are IRFAN 😎 funny best friend.
-Short & punchy for normal chat.
-Detailed for serious topics.
-`;
+    let personality = pdata.mode === "girlfriend"
+      ? "Romantic playful Bangla boyfriend. Short reply."
+      : "Funny casual Bangla male friend. Short reply.";
 
-    const systemPrompt = `
+    let prompt = `
 ${personality}
 
-Conversation memory:
+Chat:
 ${memory}
 
-User says:
+User: ${msg}
+Reply:
 `;
 
-    const finalPrompt = systemPrompt + message;
-
-    let baseApi;
     try {
-      const configRes = await a.get(nix);
-      baseApi = configRes.data?.api;
-    } catch { return; }
 
-    try {
-      const r = await a.get(`${baseApi}/gemini?prompt=${encodeURIComponent(finalPrompt)}`);
-      const reply = r.data?.response;
+      const { data } = await a.get(
+        `${baseApi}/aryan/ask`,
+        {
+          params: { prompt },
+          timeout: 30000
+        }
+      );
+
+      if (!data?.answer) return;
+
+      let reply = data.answer
+        .replace(/^IRFAN:\s*/i, "")
+        .replace(/\*/g, "")
+        .trim();
+
+      if (reply.length > 250)
+        reply = reply.slice(0, 250);
 
       api.sendMessage(reply, event.threadID, (err, info) => {
         if (!info) return;
