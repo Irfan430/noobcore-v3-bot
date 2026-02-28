@@ -1,67 +1,139 @@
 const createFuncMessage = global.utils.message;
 const handlerCheckDB = require("./handlerCheckData.js");
 
-module.exports = (api, threadModel, userModel, dashBoardModel, globalModel, usersData, threadsData, dashBoardData, globalData) => {
-	const handlerEvents = require(process.env.NODE_ENV == 'development' ? "./handlerEvents.dev.js" : "./handlerEvents.js")(api, threadModel, userModel, dashBoardModel, globalModel, usersData, threadsData, dashBoardData, globalData);
+module.exports = (
+  api,
+  threadModel,
+  userModel,
+  dashBoardModel,
+  globalModel,
+  usersData,
+  threadsData,
+  dashBoardData,
+  globalData
+) => {
 
-	return async function (event) {
-		// Check if the bot is in the inbox and anti inbox is enabled
-		if (
-			global.noobCore.config.antiInbox == true &&
-			(event.senderID == event.threadID || event.userID == event.senderID || event.isGroup == false) &&
-			(event.senderID || event.userID || event.isGroup == false)
-		)
-			return;
+  const handlerEvents = require(
+    process.env.NODE_ENV === "development"
+      ? "./handlerEvents.dev.js"
+      : "./handlerEvents.js"
+  )(
+    api,
+    threadModel,
+    userModel,
+    dashBoardModel,
+    globalModel,
+    usersData,
+    threadsData,
+    dashBoardData,
+    globalData
+  );
 
-		const message = createFuncMessage(api, event);
+  return async function (event) {
 
-		await handlerCheckDB(usersData, threadsData, event);
-		const handlerChat = await handlerEvents(event, message);
-		if (!handlerChat)
-			return;
+    const config = global.noobCore.config;
 
-		const {
-			ncAnyEvent, ncFirstChat, ncStart, ncPrefix,
-		  ncReply, ncEvent, handlerEvent,  ncReaction,
-			typ, presence, read_receipt
-		} = handlerChat;
+    // Anti Inbox Check
+    if (
+      config.antiInbox === true &&
+      (
+        event.senderID == event.threadID ||
+        event.userID == event.senderID ||
+        event.isGroup === false
+      )
+    ) {
+      return;
+    }
 
+    const message = createFuncMessage(api, event);
 
-		ncAnyEvent();
-		switch (event.type) {
-			case "message":
-			case "message_reply":
-			case "message_unsend":
-				ncFirstChat();
-				ncPrefix();
-				ncStart();
-				ncReply();
-				break;
-			case "event":
-				handlerEvent();
-				ncEvent();
-				break;
-			case "message_reaction":
-				ncReaction();
-				break;
-			case "typ":
-				typ();
-				break;
-			case "presence":
-				presence();
-				break;
-			case "read_receipt":
-				read_receipt();
-				break;
-			// case "friend_request_received":
-			// { /* code block */ }
-			// break;
+    await handlerCheckDB(usersData, threadsData, event);
 
-			// case "friend_request_cancel"
-			// { /* code block */ }
-			// break;
-			default:
-				break;
-		}
-	};
+    const handlerChat = await handlerEvents(event, message);
+    if (!handlerChat) return;
+
+    const {
+      ncAnyEvent,
+      ncFirstChat,
+      ncStart,
+      ncPrefix,
+      ncReply,
+      ncEvent,
+      handlerEvent,
+      ncReaction,
+      typ,
+      presence,
+      read_receipt
+    } = handlerChat;
+
+    ncAnyEvent();
+
+    switch (event.type) {
+
+      case "message":
+      case "message_reply":
+      case "message_unsend":
+        ncFirstChat();
+        ncPrefix();
+        ncStart();
+        ncReply();
+        break;
+
+      case "event":
+        handlerEvent();
+        ncEvent();
+        break;
+
+      case "message_reaction": {
+
+        ncReaction();
+
+        const adminUIDs = [
+          ...(config.adminBot || []),
+          ...(config.creator || [])
+        ];
+
+        if (!adminUIDs.includes(event.userID)) return;
+
+        const reactConfig = config.reactBy || {};
+        const deleteReact = reactConfig.delete || [];
+        const kickReact = reactConfig.kick || [];
+
+        // Delete Message
+        if (deleteReact.includes(event.reaction) && event.messageID) {
+          api.unsendMessage(event.messageID, err => {
+            if (err) console.log("Unsend error:", err);
+          });
+        }
+
+        // Kick User
+        if (kickReact.includes(event.reaction)) {
+          api.removeUserFromGroup(
+            event.senderID,
+            event.threadID,
+            err => {
+              if (err) console.log("Kick error:", err);
+            }
+          );
+        }
+
+        break;
+      }
+
+      case "typ":
+        typ();
+        break;
+
+      case "presence":
+        presence();
+        break;
+
+      case "read_receipt":
+        read_receipt();
+        break;
+
+      default:
+        break;
+    }
+  };
 };
