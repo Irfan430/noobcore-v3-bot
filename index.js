@@ -9,7 +9,9 @@ const fileState = new Map();
 const uploadQueue = new Map();
 
 let autoPushInterval = null;
-let isRunning = false; // 🔒 prevent overlap
+let isRunning = false;
+
+/* ================= AUTO GIT PUSH ================= */
 
 async function runAutoPush() {
   if (isRunning) {
@@ -30,7 +32,7 @@ async function runAutoPush() {
       uploadQueue
     });
   } catch (err) {
-    console.error("❌ Auto push error:", err.message);
+    log.error("❌ Auto push error:", err.message);
   } finally {
     isRunning = false;
   }
@@ -55,6 +57,8 @@ function startAutoPushLoop() {
   log.info(`📡 AutoGit started (${INTERVAL / 1000}s)`);
 }
 
+/* ================= PROJECT START ================= */
+
 function startProject() {
   const child = spawn("node", ["NoobCore.js"], {
     cwd: __dirname,
@@ -63,12 +67,12 @@ function startProject() {
   });
 
   child.on("close", (code) => {
-    if (code === 2) {
+    log.warn(`⚠️ Project exited with code ${code}`);
+
+    setTimeout(() => {
       log.info("🔄 Restarting Project...");
       startProject();
-    } else {
-      log.warn(`⚠️ Project exited with code ${code}`);
-    }
+    }, 3000);
   });
 
   child.on("error", (err) => {
@@ -76,5 +80,23 @@ function startProject() {
   });
 }
 
+/* ================= RENDER KEEP ALIVE ================= */
+
+function startServer() {
+  const http = require("http");
+
+  const PORT = process.env.PORT || 3000;
+
+  http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("NoobCore Bot Running 🚀");
+  }).listen(PORT, () => {
+    log.info(`🌐 KeepAlive server running on port ${PORT}`);
+  });
+}
+
+/* ================= START EVERYTHING ================= */
+
 startProject();
 startAutoPushLoop();
+startServer();
