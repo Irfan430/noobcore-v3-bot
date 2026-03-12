@@ -9,8 +9,7 @@
 	},
 	"type": "commonjs",
 	"dependencies": {
-"@dongdev/fca-unofficial": "^3.0.31",
-		"@dongdev/fca-unofficial": "^3.0.25",
+		"@dongdev/fca-unofficial": "^3.0.31",
 		"axios": "^1.4.0",
 		"bcrypt": "^5.0.1",
 		"boxen": "^8.0.1",
