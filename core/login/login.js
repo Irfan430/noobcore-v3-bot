@@ -635,9 +635,8 @@ async function startBot(loginWithEmail) {
         const currentVersion = require("../../package.json").version;
         const tooOldVersion = (await axios.get("https://raw.githubusercontent.com/noobcore404/Ncbot-storage/refs/heads/main/tooOldVersions.txt")).data || "0.0.0";
         // nếu version cũ hơn
-        if ([-1, 0].includes(compareVersion(currentVersion, tooOldVersion))) {
+        if (compareVersion(currentVersion, tooOldVersion) === -1) {
                 log.err("VERSION", getText('version', 'tooOldVersion', colors.yellowBright('node update')));
-                
         }
         /* { CHECK ORIGIN CODE } */
 

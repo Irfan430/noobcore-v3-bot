@@ -177,7 +177,13 @@ global.noobCore.envEvents = global.noobCore.configCommands.envEvents;
 const getText = global.utils.getText;
 
 (async () => {
-        const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ntkhang03/Goat-Bot-V2/main/package.json");
+        let version = "0.0.0";
+        try {
+                const response = await axios.get("https://raw.githubusercontent.com/ntkhang03/Goat-Bot-V2/main/package.json");
+                version = response.data.version;
+        } catch (e) {
+                // Ignore error if remote version cannot be fetched
+        }
         const currentVersion = require("./package.json").version;
         if (compareVersion(version, currentVersion) === 1)
                 utils.log.master("NEW VERSION", getText(
